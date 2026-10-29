@@ -16,11 +16,11 @@ type fetchedMsg struct {
 	err error
 }
 
-// fetchCmd fetches review-requested PRs off the UI goroutine so the render
+// fetchCmd fetches open PRs off the UI goroutine so the render
 // loop never blocks on network I/O.
 func fetchCmd(fetcher github.Fetcher, allowlist map[string]struct{}) tea.Cmd {
 	return func() tea.Msg {
-		raws, err := fetcher.SearchReviewRequestedPRs(context.Background())
+		raws, err := fetcher.SearchOpenPRs(context.Background())
 		if err != nil {
 			return fetchedMsg{err: err}
 		}

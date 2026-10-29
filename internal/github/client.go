@@ -23,6 +23,7 @@ const (
 type Client struct {
 	httpClient *http.Client
 	token      string
+	repos      []string
 	baseURL    string
 	restURL    string
 	retryDelay time.Duration
@@ -31,25 +32,31 @@ type Client struct {
 var _ Fetcher = (*Client)(nil)
 var _ Merger = (*Client)(nil)
 
-// NewClient builds a Client authenticated with the given token.
-func NewClient(token string) *Client {
+// NewClient builds a Client authenticated with the given token that searches
+// the given repos ("owner/name").
+func NewClient(token string, repos []string) *Client {
 	return &Client{
 		httpClient: http.DefaultClient,
 		token:      token,
+		repos:      repos,
 		baseURL:    defaultGraphQLURL,
 		restURL:    defaultRESTURL,
 		retryDelay: defaultRetryDelay,
 	}
 }
 
-// SearchReviewRequestedPRs fetches every open PR where the authenticated user
-// is a requested reviewer, paginating until exhausted or maxPages is reached.
-func (c *Client) SearchReviewRequestedPRs(ctx context.Context) ([]PullRequest, error) {
+// SearchOpenPRs fetches every open PR in the configured repos, paginating
+// until exhausted or maxPages is reached.
+func (c *Client) SearchOpenPRs(ctx context.Context) ([]PullRequest, error) {
 	var all []PullRequest
 	cursor := ""
+	query := "is:pr is:open"
+	for _, r := range c.repos {
+		query += " repo:" + r
+	}
 
 	for page := 0; page < maxPages; page++ {
-		resp, err := c.doRequest(ctx, cursor)
+		resp, err := c.doRequest(ctx, query, cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -101,8 +108,8 @@ func isGatewayError(status int) bool {
 		status == http.StatusGatewayTimeout
 }
 
-func (c *Client) doRequest(ctx context.Context, cursor string) (*searchResponse, error) {
-	body, err := json.Marshal(newSearchRequest(cursor))
+func (c *Client) doRequest(ctx context.Context, query, cursor string) (*searchResponse, error) {
+	body, err := json.Marshal(newSearchRequest(query, cursor))
 	if err != nil {
 		return nil, fmt.Errorf("marshal graphql request: %w", err)
 	}

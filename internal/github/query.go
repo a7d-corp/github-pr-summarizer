@@ -1,8 +1,8 @@
 package github
 
 const searchQuery = `
-query($cursor: String) {
-  search(query: "is:pr is:open review-requested:@me", type: ISSUE, first: 15, after: $cursor) {
+query($query: String!, $cursor: String) {
+  search(query: $query, type: ISSUE, first: 15, after: $cursor) {
     nodes {
       ... on PullRequest {
         number
@@ -41,13 +41,13 @@ type graphQLRequest struct {
 	Variables map[string]any `json:"variables"`
 }
 
-func newSearchRequest(cursor string) graphQLRequest {
+func newSearchRequest(query, cursor string) graphQLRequest {
 	var cursorVar any
 	if cursor != "" {
 		cursorVar = cursor
 	}
 	return graphQLRequest{
 		Query:     searchQuery,
-		Variables: map[string]any{"cursor": cursorVar},
+		Variables: map[string]any{"query": query, "cursor": cursorVar},
 	}
 }

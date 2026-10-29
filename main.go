@@ -1,5 +1,5 @@
 // Command github-pr-summarizer is a terminal dashboard for open GitHub pull
-// requests where you are a requested reviewer.
+// requests in a configured list of repos.
 package main
 
 import (
@@ -44,7 +44,7 @@ func run() error {
 		return fmt.Errorf("GITHUB_TOKEN environment variable is not set")
 	}
 
-	client := github.NewClient(token)
+	client := github.NewClient(token, cfg.Repos)
 	model := ui.NewModel(client, client, cfg.Allowlist())
 
 	_, err = tea.NewProgram(model, tea.WithAltScreen()).Run()

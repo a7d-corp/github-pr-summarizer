@@ -2,9 +2,9 @@ package github
 
 import "context"
 
-// Fetcher retrieves open PRs where the authenticated user is a requested reviewer.
+// Fetcher retrieves open PRs in the configured repos.
 type Fetcher interface {
-	SearchReviewRequestedPRs(ctx context.Context) ([]PullRequest, error)
+	SearchOpenPRs(ctx context.Context) ([]PullRequest, error)
 }
 
 // Merger approves and merges a single PR.

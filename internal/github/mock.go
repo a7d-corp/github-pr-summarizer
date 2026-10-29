@@ -16,8 +16,8 @@ type MockFetcher struct {
 var _ Fetcher = (*MockFetcher)(nil)
 var _ Merger = (*MockFetcher)(nil)
 
-// SearchReviewRequestedPRs returns the configured PRs or error.
-func (m *MockFetcher) SearchReviewRequestedPRs(ctx context.Context) ([]PullRequest, error) {
+// SearchOpenPRs returns the configured PRs or error.
+func (m *MockFetcher) SearchOpenPRs(ctx context.Context) ([]PullRequest, error) {
 	return m.PRs, m.Err
 }
 
