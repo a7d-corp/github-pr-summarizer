@@ -3,14 +3,14 @@
 pkgname=github-pr-summarizer-bin
 _srcname=github-pr-summarizer
 pkgdesc="A command line tool to summarize GitHub pull requests"
-pkgver=0.0.0
+pkgver=0.0.1
 pkgrel=1
 provides=('github-pr-summarizer')
 arch=('x86_64')
 url="https://github.com/a7d-corp/${_srcname}"
 license=('apache')
 source=("${_srcname}-v${pkgver}.tar.gz::${url}/releases/download/v${pkgver}/${_srcname}-v${pkgver}-linux-amd64.tar.gz")
-sha256sums=('abcdefg')
+sha256sums=('5b28ea5608cff9e08e3e95bb44f19214ffb4f7fb08519319fb12eda0cc4a1b5a')
 
 package() {
     cd ${srcdir}
