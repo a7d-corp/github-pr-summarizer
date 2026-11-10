@@ -101,6 +101,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				_ = m.openURL(pr.URL)
 			}
 			return m, nil
+		case key.Matches(msg, keys.OpenRepo):
+			if pr, ok := m.selectedPR(); ok {
+				_ = m.openURL("https://github.com/" + pr.Repo)
+			}
+			return m, nil
 		case key.Matches(msg, keys.Up):
 			m.moveCursor(-1)
 		case key.Matches(msg, keys.Down):

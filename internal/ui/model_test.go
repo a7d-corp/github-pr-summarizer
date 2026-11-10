@@ -416,3 +416,18 @@ func TestModelUpdatePageDownMovesCursor(t *testing.T) {
 		t.Errorf("selectedPR() after pgdown = %+v, %v, want PR 4", pr, ok)
 	}
 }
+
+func TestModelUpdateOOpensSelectedPRRepo(t *testing.T) {
+	m := newTestModelWithRepos(t)
+
+	var openedURL string
+	m.openURL = func(url string) error {
+		openedURL = url
+		return nil
+	}
+	m.Update(keyRune("o"))
+
+	if openedURL != "https://github.com/a/repo" {
+		t.Errorf("Update(o) opened %q, want %q", openedURL, "https://github.com/a/repo")
+	}
+}
