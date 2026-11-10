@@ -10,6 +10,7 @@ type keyMap struct {
 	Top      key.Binding
 	Bottom   key.Binding
 	Enter    key.Binding
+	OpenRepo key.Binding
 	Merge    key.Binding
 	Yes      key.Binding
 	No       key.Binding
@@ -28,6 +29,10 @@ var keys = keyMap{
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "open PR in browser"),
+	),
+	OpenRepo: key.NewBinding(
+		key.WithKeys("o"),
+		key.WithHelp("o", "open PR's repo in browser"),
 	),
 	Merge: key.NewBinding(
 		key.WithKeys("m"),
@@ -54,6 +59,7 @@ const helpText = `
   b/f, pgup/pgdn move one page
   g/G, home/end  go to first/last PR
   enter          open PR in browser
+  o              open PR's repo in browser
   m              approve and squash-merge PR (asks to confirm)
   r              refresh
   ?              toggle this help
