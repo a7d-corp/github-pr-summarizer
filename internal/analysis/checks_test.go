@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/a7d-corp/github-pr-summarizer/internal/github"
@@ -88,5 +89,30 @@ func TestTallyChecks(t *testing.T) {
 				t.Errorf("TallyChecks() = %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestListChecksNilRollup(t *testing.T) {
+	if got := ListChecks(nil); got != nil {
+		t.Errorf("ListChecks(nil) = %+v, want nil", got)
+	}
+}
+
+func TestListChecks(t *testing.T) {
+	rollup := &github.StatusCheckRollup{}
+	rollup.Contexts.Nodes = []github.CheckContext{
+		{Typename: "CheckRun", Name: "lint", Status: "COMPLETED", Conclusion: "SUCCESS"},
+		{Typename: "CheckRun", Name: "test", Status: "COMPLETED", Conclusion: "FAILURE"},
+		{Typename: "StatusContext", Name: "ci/circleci", State: "PENDING"},
+	}
+
+	got := ListChecks(rollup)
+	want := []Check{
+		{Name: "lint", Status: StatusPassing},
+		{Name: "test", Status: StatusFailing},
+		{Name: "ci/circleci", Status: StatusPending},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ListChecks() = %+v, want %+v", got, want)
 	}
 }

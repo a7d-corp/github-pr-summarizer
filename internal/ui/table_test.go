@@ -193,3 +193,58 @@ func TestPRLineViewFitsTerminalWidth(t *testing.T) {
 		t.Errorf("prLineView() = %q, want to contain the full checks value 12/10", got)
 	}
 }
+
+func TestConfirmViewListsChecks(t *testing.T) {
+	pr := analysis.PullRequest{
+		Number: 7, Title: "bump foo", Repo: "giantswarm/happa",
+		CheckRuns: []analysis.Check{
+			{Name: "lint", Status: analysis.StatusPassing},
+			{Name: "unit-tests", Status: analysis.StatusFailing},
+			{Name: "ci/circleci", Status: analysis.StatusPending},
+		},
+	}
+	lines := strings.Split(ansi.Strip(confirmView(pr)), "\n")
+
+	for _, want := range [][]string{
+		{"Check", "Status"},
+		{"lint", "passed"},
+		{"unit-tests", "failed"},
+		{"ci/circleci", "pending"},
+	} {
+		found := false
+		for _, l := range lines {
+			if reflect.DeepEqual(strings.Fields(l), want) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("confirmView() has no row %q:\n%s", want, strings.Join(lines, "\n"))
+		}
+	}
+}
+
+func TestConfirmViewNoChecks(t *testing.T) {
+	got := ansi.Strip(confirmView(analysis.PullRequest{Number: 7, Repo: "giantswarm/happa"}))
+	if !strings.Contains(got, "no checks") {
+		t.Errorf("confirmView() = %q, want to contain %q", got, "no checks")
+	}
+}
+
+func TestConfirmViewApproval(t *testing.T) {
+	tests := []struct {
+		state analysis.ApprovalState
+		want  string
+	}{
+		{analysis.ApprovalApproved, "approval: approved"},
+		{analysis.ApprovalChangesRequested, "approval: changes requested"},
+		{analysis.ApprovalReviewRequired, "approval: review required"},
+		{analysis.ApprovalUnknown, "approval: none"},
+	}
+	for _, tt := range tests {
+		got := ansi.Strip(confirmView(analysis.PullRequest{Approval: tt.state}))
+		if !strings.Contains(got, tt.want) {
+			t.Errorf("confirmView(approval %d) = %q, want to contain %q", tt.state, got, tt.want)
+		}
+	}
+}

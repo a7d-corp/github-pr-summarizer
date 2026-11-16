@@ -18,6 +18,25 @@ type CheckSummary struct {
 	Overall             Status
 }
 
+// Check is one check run or legacy status of a PR.
+type Check struct {
+	Name   string
+	Status Status
+}
+
+// ListChecks returns each context of a status check rollup with its Status.
+// A nil rollup (no CI configured) yields nil.
+func ListChecks(rollup *github.StatusCheckRollup) []Check {
+	if rollup == nil {
+		return nil
+	}
+	checks := make([]Check, 0, len(rollup.Contexts.Nodes))
+	for _, ctx := range rollup.Contexts.Nodes {
+		checks = append(checks, Check{Name: ctx.Name, Status: classify(ctx)})
+	}
+	return checks
+}
+
 // TallyChecks counts pass/fail/pending contexts from a status check rollup
 // and derives an overall Status. A nil rollup (no CI configured) yields
 // StatusUnknown with zero counts.

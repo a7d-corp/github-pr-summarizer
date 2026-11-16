@@ -1,6 +1,7 @@
 package analysis
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -72,7 +73,7 @@ func TestBuildPullRequests(t *testing.T) {
 		Branch:   BranchBehind,
 		Comments: 7,
 	}
-	if pr != want {
+	if !reflect.DeepEqual(pr, want) {
 		t.Errorf("BuildPullRequests()[0] = %+v, want %+v", pr, want)
 	}
 }
