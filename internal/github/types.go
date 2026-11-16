@@ -47,6 +47,7 @@ type StatusCheckRollup struct {
 // Typename discriminates between the two GraphQL union members.
 type CheckContext struct {
 	Typename   string `json:"__typename"`
+	Name       string `json:"name"`       // CheckRun name, or StatusContext context
 	Conclusion string `json:"conclusion"` // CheckRun only
 	Status     string `json:"status"`     // CheckRun only
 	State      string `json:"state"`      // StatusContext only

@@ -22,8 +22,8 @@ query($query: String!, $cursor: String) {
                 contexts(first: 100) {
                   nodes {
                     __typename
-                    ... on CheckRun { conclusion status }
-                    ... on StatusContext { state }
+                    ... on CheckRun { name conclusion status }
+                    ... on StatusContext { name: context state }
                   }
                 }
               }

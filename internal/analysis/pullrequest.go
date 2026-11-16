@@ -8,16 +8,17 @@ import (
 
 // PullRequest is the domain model consumed by the UI layer.
 type PullRequest struct {
-	Number   int
-	Title    string
-	URL      string
-	Repo     string
-	Age      string
-	IsDraft  bool
-	Checks   CheckSummary
-	Approval ApprovalState
-	Branch   BranchStatus
-	Comments int
+	Number    int
+	Title     string
+	URL       string
+	Repo      string
+	Age       string
+	IsDraft   bool
+	Checks    CheckSummary
+	CheckRuns []Check
+	Approval  ApprovalState
+	Branch    BranchStatus
+	Comments  int
 }
 
 // FilterByRepoAllowlist keeps only PRs whose repository is in allowlist.
@@ -39,16 +40,17 @@ func BuildPullRequests(raws []github.PullRequest, allowlist map[string]struct{},
 	prs := make([]PullRequest, 0, len(filtered))
 	for _, raw := range filtered {
 		prs = append(prs, PullRequest{
-			Number:   raw.Number,
-			Title:    raw.Title,
-			URL:      raw.URL,
-			Repo:     raw.Repository.NameWithOwner,
-			Age:      FormatAge(raw.CreatedAt, now),
-			IsDraft:  raw.IsDraft,
-			Checks:   TallyChecks(raw.LatestCheckRollup()),
-			Approval: MapApprovalState(raw.ReviewDecision),
-			Branch:   MapBranchStatus(raw.MergeStateStatus),
-			Comments: raw.Comments.TotalCount,
+			Number:    raw.Number,
+			Title:     raw.Title,
+			URL:       raw.URL,
+			Repo:      raw.Repository.NameWithOwner,
+			Age:       FormatAge(raw.CreatedAt, now),
+			IsDraft:   raw.IsDraft,
+			Checks:    TallyChecks(raw.LatestCheckRollup()),
+			CheckRuns: ListChecks(raw.LatestCheckRollup()),
+			Approval:  MapApprovalState(raw.ReviewDecision),
+			Branch:    MapBranchStatus(raw.MergeStateStatus),
+			Comments:  raw.Comments.TotalCount,
 		})
 	}
 	return prs
