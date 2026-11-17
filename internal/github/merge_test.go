@@ -35,7 +35,7 @@ func TestClientApproveAndMergeSendsApproveThenSquashMerge(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	if err := client.ApproveAndMerge(context.Background(), "giantswarm/happa", 42); err != nil {
+	if err := client.ApproveAndMerge(context.Background(), "giantswarm/happa", 42, true); err != nil {
 		t.Fatalf("ApproveAndMerge() unexpected error: %v", err)
 	}
 
@@ -59,10 +59,10 @@ func TestClientApproveAndMergeApproveFailureSkipsMerge(t *testing.T) {
 	client := newTestRESTClient(t, func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		_, _ = w.Write([]byte(`{"message":"Can not approve your own pull request"}`))
+		_, _ = w.Write([]byte(`{"message":"Unprocessable Entity","errors":["Review Can not approve your own pull request"],"status":"422"}`))
 	})
 
-	err := client.ApproveAndMerge(context.Background(), "o/r", 1)
+	err := client.ApproveAndMerge(context.Background(), "o/r", 1, true)
 	if err == nil {
 		t.Fatal("ApproveAndMerge() error = nil, want error")
 	}
@@ -85,7 +85,7 @@ func TestClientApproveAndMergeMergeFailureMentionsApproval(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	err := client.ApproveAndMerge(context.Background(), "o/r", 1)
+	err := client.ApproveAndMerge(context.Background(), "o/r", 1, true)
 	if err == nil {
 		t.Fatal("ApproveAndMerge() error = nil, want error")
 	}
@@ -93,5 +93,42 @@ func TestClientApproveAndMergeMergeFailureMentionsApproval(t *testing.T) {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error = %q, want to contain %q", err, want)
 		}
+	}
+}
+
+func TestClientApproveAndMergeSkipsApproveWhenNotRequested(t *testing.T) {
+	var calls []string
+	client := newTestRESTClient(t, func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	})
+
+	if err := client.ApproveAndMerge(context.Background(), "o/r", 1, false); err != nil {
+		t.Fatalf("ApproveAndMerge() unexpected error: %v", err)
+	}
+	want := "PUT /repos/o/r/pulls/1/merge"
+	if strings.Join(calls, ",") != want {
+		t.Errorf("calls = %v, want [%s]", calls, want)
+	}
+}
+
+func TestRestErrorMessage(t *testing.T) {
+	tests := []struct {
+		name string
+		body string
+		want string
+	}{
+		{"message only", `{"message":"Not Found"}`, "Not Found"},
+		{"string errors", `{"message":"Unprocessable Entity","errors":["Review Can not approve your own pull request"]}`, "Unprocessable Entity: Review Can not approve your own pull request"},
+		{"object errors", `{"message":"Validation Failed","errors":[{"resource":"PullRequest","code":"custom","message":"Head branch was modified"}]}`, "Validation Failed: Head branch was modified"},
+		{"not JSON", "bad gateway\n", "bad gateway"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := restErrorMessage(strings.NewReader(tt.body)); got != tt.want {
+				t.Errorf("restErrorMessage() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

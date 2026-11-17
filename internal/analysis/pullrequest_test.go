@@ -49,6 +49,7 @@ func TestBuildPullRequests(t *testing.T) {
 		IsDraft:          true,
 		ReviewDecision:   "CHANGES_REQUESTED",
 		MergeStateStatus: "BEHIND",
+		ViewerDidAuthor:  true,
 	}
 	raw.Repository.NameWithOwner = "giantswarm/happa"
 	raw.Comments.TotalCount = 7
@@ -72,6 +73,7 @@ func TestBuildPullRequests(t *testing.T) {
 		Approval: ApprovalChangesRequested,
 		Branch:   BranchBehind,
 		Comments: 7,
+		IsOwn:    true,
 	}
 	if !reflect.DeepEqual(pr, want) {
 		t.Errorf("BuildPullRequests()[0] = %+v, want %+v", pr, want)

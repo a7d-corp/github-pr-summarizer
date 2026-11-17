@@ -19,6 +19,7 @@ type PullRequest struct {
 	Approval  ApprovalState
 	Branch    BranchStatus
 	Comments  int
+	IsOwn     bool // true if the token owner is the PR author
 }
 
 // FilterByRepoAllowlist keeps only PRs whose repository is in allowlist.
@@ -51,6 +52,7 @@ func BuildPullRequests(raws []github.PullRequest, allowlist map[string]struct{},
 			Approval:  MapApprovalState(raw.ReviewDecision),
 			Branch:    MapBranchStatus(raw.MergeStateStatus),
 			Comments:  raw.Comments.TotalCount,
+			IsOwn:     raw.ViewerDidAuthor,
 		})
 	}
 	return prs

@@ -19,10 +19,13 @@ type mergedMsg struct {
 	err    error
 }
 
-// mergeCmd approves and merges a PR off the UI goroutine.
+// mergeCmd approves and merges a PR off the UI goroutine. It does not approve
+// a PR that is already approved. It does not approve your own PR, because
+// GitHub refuses an approval from the PR author.
 func mergeCmd(merger github.Merger, pr analysis.PullRequest) tea.Cmd {
 	return func() tea.Msg {
-		err := merger.ApproveAndMerge(context.Background(), pr.Repo, pr.Number)
+		approve := pr.Approval != analysis.ApprovalApproved && !pr.IsOwn
+		err := merger.ApproveAndMerge(context.Background(), pr.Repo, pr.Number, approve)
 		return mergedMsg{repo: pr.Repo, number: pr.Number, err: err}
 	}
 }
