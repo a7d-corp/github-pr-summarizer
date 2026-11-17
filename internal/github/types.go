@@ -11,6 +11,7 @@ type PullRequest struct {
 	IsDraft          bool      `json:"isDraft"`
 	ReviewDecision   string    `json:"reviewDecision"`
 	MergeStateStatus string    `json:"mergeStateStatus"`
+	ViewerDidAuthor  bool      `json:"viewerDidAuthor"`
 	Repository       struct {
 		NameWithOwner string `json:"nameWithOwner"`
 	} `json:"repository"`

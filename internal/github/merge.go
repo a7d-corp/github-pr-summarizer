@@ -10,13 +10,15 @@ import (
 	"strings"
 )
 
-// ApproveAndMerge approves the PR, then squash-merges it. GitHub branch
-// protection decides whether the merge is allowed.
-func (c *Client) ApproveAndMerge(ctx context.Context, repo string, number int) error {
+// ApproveAndMerge approves the PR if approve is true, then squash-merges it.
+// GitHub branch protection decides whether the merge is allowed.
+func (c *Client) ApproveAndMerge(ctx context.Context, repo string, number int, approve bool) error {
 	prPath := fmt.Sprintf("/repos/%s/pulls/%d", repo, number)
 
-	if err := c.doREST(ctx, http.MethodPost, prPath+"/reviews", map[string]string{"event": "APPROVE"}); err != nil {
-		return fmt.Errorf("approve failed: %w", err)
+	if approve {
+		if err := c.doREST(ctx, http.MethodPost, prPath+"/reviews", map[string]string{"event": "APPROVE"}); err != nil {
+			return fmt.Errorf("approve failed: %w", err)
+		}
 	}
 	if err := c.doREST(ctx, http.MethodPut, prPath+"/merge", map[string]string{"merge_method": "squash"}); err != nil {
 		return fmt.Errorf("approved, but merge failed: %w", err)
@@ -52,15 +54,37 @@ func (c *Client) doREST(ctx context.Context, method, path string, payload any) e
 	return nil
 }
 
-// restErrorMessage returns the "message" field of a GitHub error body, or the
-// raw body if it is not JSON.
+// restErrorMessage returns the "message" field of a GitHub error body, followed
+// by the items of its "errors" field. It returns the raw body if it is not JSON.
 func restErrorMessage(r io.Reader) string {
-	raw, _ := io.ReadAll(io.LimitReader(r, 512))
+	raw, _ := io.ReadAll(io.LimitReader(r, 1024))
 	var parsed struct {
+		Message string            `json:"message"`
+		Errors  []json.RawMessage `json:"errors"`
+	}
+	if json.Unmarshal(raw, &parsed) != nil || parsed.Message == "" {
+		return strings.TrimSpace(string(raw))
+	}
+
+	parts := []string{parsed.Message}
+	for _, e := range parsed.Errors {
+		if detail := restErrorDetail(e); detail != "" {
+			parts = append(parts, detail)
+		}
+	}
+	return strings.Join(parts, ": ")
+}
+
+// restErrorDetail returns the text of one item in a GitHub "errors" field. An
+// item is a string or an object with a "message" field.
+func restErrorDetail(raw json.RawMessage) string {
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		return text
+	}
+	var obj struct {
 		Message string `json:"message"`
 	}
-	if json.Unmarshal(raw, &parsed) == nil && parsed.Message != "" {
-		return parsed.Message
-	}
-	return strings.TrimSpace(string(raw))
+	_ = json.Unmarshal(raw, &obj)
+	return obj.Message
 }

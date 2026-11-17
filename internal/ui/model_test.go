@@ -285,6 +285,31 @@ func TestModelUpdateConfirmYesStartsMerge(t *testing.T) {
 	}
 }
 
+func TestMergeCmdApprovesOnlyOthersUnapprovedPRs(t *testing.T) {
+	tests := []struct {
+		state analysis.ApprovalState
+		isOwn bool
+		want  bool
+	}{
+		{analysis.ApprovalApproved, false, false},
+		{analysis.ApprovalReviewRequired, false, true},
+		{analysis.ApprovalChangesRequested, false, true},
+		{analysis.ApprovalUnknown, false, true},
+		{analysis.ApprovalApproved, true, false},
+		{analysis.ApprovalReviewRequired, true, false},
+		{analysis.ApprovalChangesRequested, true, false},
+		{analysis.ApprovalUnknown, true, false},
+	}
+	for _, tt := range tests {
+		merger := &github.MockFetcher{}
+		pr := analysis.PullRequest{Repo: "o/r", Number: 1, Approval: tt.state, IsOwn: tt.isOwn}
+		mergeCmd(merger, pr)()
+		if len(merger.Approved) != 1 || merger.Approved[0] != tt.want {
+			t.Errorf("approval %v, own %v: approve = %v, want [%v]", tt.state, tt.isOwn, merger.Approved, tt.want)
+		}
+	}
+}
+
 func TestModelUpdateMergedSuccessReturnsToListAndRefreshes(t *testing.T) {
 	m := newTestModelWithPR(t)
 	m.merging = true

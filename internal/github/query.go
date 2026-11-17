@@ -12,6 +12,7 @@ query($query: String!, $cursor: String) {
         isDraft
         reviewDecision
         mergeStateStatus
+        viewerDidAuthor
         repository { nameWithOwner }
         comments { totalCount }
         commits(last: 1) {

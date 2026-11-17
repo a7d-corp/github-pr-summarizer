@@ -11,6 +11,7 @@ type MockFetcher struct {
 	Err      error
 	MergeErr error
 	Merged   []string
+	Approved []bool
 }
 
 var _ Fetcher = (*MockFetcher)(nil)
@@ -22,7 +23,8 @@ func (m *MockFetcher) SearchOpenPRs(ctx context.Context) ([]PullRequest, error) 
 }
 
 // ApproveAndMerge records the PR as merged and returns the configured error.
-func (m *MockFetcher) ApproveAndMerge(ctx context.Context, repo string, number int) error {
+func (m *MockFetcher) ApproveAndMerge(ctx context.Context, repo string, number int, approve bool) error {
 	m.Merged = append(m.Merged, fmt.Sprintf("%s#%d", repo, number))
+	m.Approved = append(m.Approved, approve)
 	return m.MergeErr
 }
