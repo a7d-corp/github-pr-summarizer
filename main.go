@@ -23,18 +23,10 @@ func main() {
 
 func run() error {
 	configPath := flag.String("config", "", "path to the repo allowlist YAML file (default: ~/.config/github-pr-summarizer/repos.yaml)")
+	repo := flag.String("repo", "", "check only this repo (owner/name); the config file is ignored")
 	flag.Parse()
 
-	path := *configPath
-	if path == "" {
-		defaultPath, err := config.DefaultPath()
-		if err != nil {
-			return fmt.Errorf("resolve default config path: %w", err)
-		}
-		path = defaultPath
-	}
-
-	cfg, err := config.Load(path)
+	cfg, err := loadConfig(*configPath, *repo)
 	if err != nil {
 		return err
 	}
@@ -49,4 +41,21 @@ func run() error {
 
 	_, err = tea.NewProgram(model, tea.WithAltScreen()).Run()
 	return err
+}
+
+// loadConfig uses repo when it is set. Otherwise it reads the config file.
+func loadConfig(configPath, repo string) (config.Config, error) {
+	if repo != "" {
+		return config.FromRepo(repo)
+	}
+
+	if configPath == "" {
+		defaultPath, err := config.DefaultPath()
+		if err != nil {
+			return config.Config{}, fmt.Errorf("resolve default config path: %w", err)
+		}
+		configPath = defaultPath
+	}
+
+	return config.Load(configPath)
 }
