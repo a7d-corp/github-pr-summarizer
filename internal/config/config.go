@@ -42,13 +42,25 @@ func Load(path string) (Config, error) {
 	}
 
 	for _, r := range cfg.Repos {
-		parts := strings.Split(r, "/")
-		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		if !validRepo(r) {
 			return Config{}, fmt.Errorf("config file %q: invalid repo entry %q, expected owner/name", path, r)
 		}
 	}
 
 	return cfg, nil
+}
+
+// FromRepo returns a config that holds only the given "owner/name" repo.
+func FromRepo(repo string) (Config, error) {
+	if !validRepo(repo) {
+		return Config{}, fmt.Errorf("invalid repo %q, expected owner/name", repo)
+	}
+	return Config{Repos: []string{repo}}, nil
+}
+
+func validRepo(r string) bool {
+	parts := strings.Split(r, "/")
+	return len(parts) == 2 && parts[0] != "" && parts[1] != ""
 }
 
 // Allowlist returns the configured repos as an "owner/name" set.

@@ -87,6 +87,38 @@ func TestLoadMissingFile(t *testing.T) {
 	}
 }
 
+func TestFromRepo(t *testing.T) {
+	tests := []struct {
+		name    string
+		repo    string
+		wantErr bool
+	}{
+		{name: "valid repo", repo: "a7d-corp/github-pr-summarizer"},
+		{name: "missing slash", repo: "not-a-valid-entry", wantErr: true},
+		{name: "too many slashes", repo: "a/b/c", wantErr: true},
+		{name: "empty owner", repo: "/name", wantErr: true},
+		{name: "empty name", repo: "owner/", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := FromRepo(tt.repo)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("FromRepo(%q) expected error, got nil", tt.repo)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("FromRepo(%q) unexpected error: %v", tt.repo, err)
+			}
+			if len(cfg.Repos) != 1 || cfg.Repos[0] != tt.repo {
+				t.Errorf("FromRepo(%q) repos = %v, want [%s]", tt.repo, cfg.Repos, tt.repo)
+			}
+		})
+	}
+}
+
 func TestAllowlist(t *testing.T) {
 	cfg := Config{Repos: []string{"a7d-corp/github-pr-summarizer", "giantswarm/happa"}}
 	allow := cfg.Allowlist()
