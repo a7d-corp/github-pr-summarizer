@@ -4,6 +4,7 @@ import "time"
 
 // PullRequest is the raw shape of a PR as returned by the GraphQL search query.
 type PullRequest struct {
+	ID               string    `json:"id"`
 	Number           int       `json:"number"`
 	Title            string    `json:"title"`
 	URL              string    `json:"url"`

@@ -42,6 +42,7 @@ func TestBuildPullRequests(t *testing.T) {
 	now := time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC)
 
 	raw := github.PullRequest{
+		ID:               "PR_kwDOtest42",
 		Number:           42,
 		Title:            "Fix the thing",
 		URL:              "https://github.com/giantswarm/happa/pull/42",
@@ -63,6 +64,7 @@ func TestBuildPullRequests(t *testing.T) {
 
 	pr := got[0]
 	want := PullRequest{
+		ID:       "PR_kwDOtest42",
 		Number:   42,
 		Title:    "Fix the thing",
 		URL:      "https://github.com/giantswarm/happa/pull/42",
