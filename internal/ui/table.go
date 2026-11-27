@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/a7d-corp/github-pr-summarizer/internal/analysis"
@@ -62,20 +63,31 @@ func titleWidth(termWidth int) int {
 }
 
 // fit cuts or pads s to exactly w visible cells. ANSI colour codes do not count.
-func fit(s string, w int) string {
+// The padding uses the row style.
+func fit(s string, w int, row lipgloss.Style) string {
 	s = ansi.Truncate(s, w, "…")
-	return s + strings.Repeat(" ", max(0, w-ansi.StringWidth(s)))
+	return s + row.Render(strings.Repeat(" ", max(0, w-ansi.StringWidth(s))))
 }
 
-func joinCells(prefix, title string, titleW int, cells []string) string {
+// joinCells puts the cells in their columns. The gaps between the columns use the row style.
+func joinCells(prefix, title string, titleW int, cells []string, row lipgloss.Style) string {
 	var b strings.Builder
 	b.WriteString(prefix)
-	b.WriteString(fit(title, titleW))
+	b.WriteString(fit(title, titleW, row))
 	for i, c := range fixedColumns {
-		b.WriteString(strings.Repeat(" ", columnGap))
-		b.WriteString(fit(cells[i], c.width))
+		b.WriteString(row.Render(strings.Repeat(" ", columnGap)))
+		b.WriteString(fit(cells[i], c.width, row))
 	}
 	return b.String()
+}
+
+// rowStyle returns the base style of a PR line. The selected line has a background colour.
+// Each part of a line must use this style, because a colour reset also clears the background.
+func rowStyle(selected bool) lipgloss.Style {
+	if selected {
+		return styleSelectedRow
+	}
+	return styleNone
 }
 
 func headerView(titleW int) string {
@@ -83,7 +95,7 @@ func headerView(titleW int) string {
 	for _, c := range fixedColumns {
 		titles = append(titles, c.title)
 	}
-	return styleHeader.Render(joinCells(strings.Repeat(" ", prefixWidth), "PR", titleW, titles))
+	return styleHeader.Render(joinCells(strings.Repeat(" ", prefixWidth), "PR", titleW, titles, styleNone))
 }
 
 func headingView(repo string) string {
@@ -91,54 +103,56 @@ func headingView(repo string) string {
 }
 
 func prLineView(pr analysis.PullRequest, selected bool, titleW int) string {
-	prefix := strings.Repeat(" ", prefixWidth)
+	row := rowStyle(selected)
+	prefix := row.Render(strings.Repeat(" ", prefixWidth))
 	if selected {
-		prefix = styleSelected.Render("> ")
+		prefix = row.Inherit(styleSelected).Render("> ")
 	}
-	return joinCells(prefix, formatTitle(pr, selected), titleW, []string{
-		formatChecks(pr.Checks),
-		formatApproval(pr.Approval),
-		formatBranchStatus(pr.Branch),
-		strconv.Itoa(pr.Comments),
-		pr.Age,
-	})
+	return joinCells(prefix, formatTitle(pr, selected, row), titleW, []string{
+		formatChecks(pr.Checks, row),
+		formatApproval(pr.Approval, row),
+		formatBranchStatus(pr.Branch, row),
+		row.Render(strconv.Itoa(pr.Comments)),
+		row.Render(pr.Age),
+	}, row)
 }
 
-func formatTitle(pr analysis.PullRequest, selected bool) string {
-	title := fmt.Sprintf("#%d %s", pr.Number, pr.Title)
+func formatTitle(pr analysis.PullRequest, selected bool, row lipgloss.Style) string {
+	titleStyle := row
 	if selected {
-		title = styleSelected.Render(title)
+		titleStyle = row.Inherit(styleSelected)
 	}
+	title := titleStyle.Render(fmt.Sprintf("#%d %s", pr.Number, pr.Title))
 	if pr.IsDraft {
-		return styleGray.Render("[draft] ") + title
+		return row.Inherit(styleGray).Render("[draft] ") + title
 	}
 	return title
 }
 
-func formatChecks(cs analysis.CheckSummary) string {
+func formatChecks(cs analysis.CheckSummary, row lipgloss.Style) string {
 	if cs.Overall == analysis.StatusUnknown {
-		return styleGray.Render("-")
+		return row.Inherit(styleGray).Render("-")
 	}
 
-	pass := styleGreen.Render(strconv.Itoa(cs.Pass))
-	fail := styleRed.Render(strconv.Itoa(cs.Fail))
-	return pass + "/" + fail
+	pass := row.Inherit(styleGreen).Render(strconv.Itoa(cs.Pass))
+	fail := row.Inherit(styleRed).Render(strconv.Itoa(cs.Fail))
+	return pass + row.Render("/") + fail
 }
 
-func formatApproval(state analysis.ApprovalState) string {
+func formatApproval(state analysis.ApprovalState, row lipgloss.Style) string {
 	if state == analysis.ApprovalApproved {
-		return styleGreen.Render("●")
+		return row.Inherit(styleGreen).Render("●")
 	}
-	return styleGray.Render("○")
+	return row.Inherit(styleGray).Render("○")
 }
 
-func formatBranchStatus(bs analysis.BranchStatus) string {
+func formatBranchStatus(bs analysis.BranchStatus, row lipgloss.Style) string {
 	switch bs {
 	case analysis.BranchUpToDate:
-		return styleGreen.Render("●")
+		return row.Inherit(styleGreen).Render("●")
 	case analysis.BranchBehind:
-		return styleRed.Render("●")
+		return row.Inherit(styleRed).Render("●")
 	default:
-		return styleGray.Render("○")
+		return row.Inherit(styleGray).Render("○")
 	}
 }

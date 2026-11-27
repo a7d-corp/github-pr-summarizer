@@ -34,7 +34,7 @@ func confirmView(pr analysis.PullRequest) string {
 	return fmt.Sprintf(
 		"%s#%d  %s\n\napproval: %s   up to date: %s\n\n%s\n\napprove and squash-merge? y/n",
 		pr.Repo, pr.Number, pr.Title,
-		formatApprovalText(pr.Approval), formatBranchStatus(pr.Branch),
+		formatApprovalText(pr.Approval), formatBranchStatus(pr.Branch, styleNone),
 		checksTable(pr.CheckRuns),
 	)
 }
@@ -50,9 +50,9 @@ func checksTable(checks []analysis.Check) string {
 		nameW = max(nameW, ansi.StringWidth(c.Name))
 	}
 
-	rows := []string{styleHeader.Render(fit("Check", nameW) + "  Status")}
+	rows := []string{styleHeader.Render(fit("Check", nameW, styleNone) + "  Status")}
 	for _, c := range checks {
-		rows = append(rows, fit(c.Name, nameW)+"  "+formatCheckStatus(c.Status))
+		rows = append(rows, fit(c.Name, nameW, styleNone)+"  "+formatCheckStatus(c.Status))
 	}
 	return strings.Join(rows, "\n")
 }

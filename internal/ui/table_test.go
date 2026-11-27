@@ -5,14 +5,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/cellbuf"
+	"github.com/muesli/termenv"
 
 	"github.com/a7d-corp/github-pr-summarizer/internal/analysis"
 )
 
 func TestFormatTitleDraft(t *testing.T) {
 	pr := analysis.PullRequest{Number: 5, Title: "add feature", IsDraft: true}
-	got := formatTitle(pr, false)
+	got := formatTitle(pr, false, styleNone)
 	if !strings.Contains(got, "[draft]") || !strings.Contains(got, "#5 add feature") {
 		t.Errorf("formatTitle(draft) = %q, want to contain [draft] and #5 add feature", got)
 	}
@@ -20,7 +23,7 @@ func TestFormatTitleDraft(t *testing.T) {
 
 func TestFormatTitleNonDraft(t *testing.T) {
 	pr := analysis.PullRequest{Number: 5, Title: "add feature"}
-	got := formatTitle(pr, false)
+	got := formatTitle(pr, false, styleNone)
 	if strings.Contains(got, "[draft]") {
 		t.Errorf("formatTitle(non-draft) = %q, should not contain [draft]", got)
 	}
@@ -43,7 +46,7 @@ func TestFormatChecks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatChecks(tt.cs)
+			got := formatChecks(tt.cs, styleNone)
 			wantPass := styleGreen.Render(tt.wantPass)
 			wantFail := styleRed.Render(tt.wantFail)
 			if !strings.Contains(got, wantPass) || !strings.Contains(got, wantFail) {
@@ -54,7 +57,7 @@ func TestFormatChecks(t *testing.T) {
 }
 
 func TestFormatChecksUnknown(t *testing.T) {
-	got := formatChecks(analysis.CheckSummary{Overall: analysis.StatusUnknown})
+	got := formatChecks(analysis.CheckSummary{Overall: analysis.StatusUnknown}, styleNone)
 	if !strings.Contains(got, "-") {
 		t.Errorf("formatChecks(unknown) = %q, want to contain %q", got, "-")
 	}
@@ -74,7 +77,7 @@ func TestFormatApproval(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatApproval(tt.state)
+			got := formatApproval(tt.state, styleNone)
 			if got != tt.want {
 				t.Errorf("formatApproval(%v) = %q, want %q", tt.state, got, tt.want)
 			}
@@ -95,7 +98,7 @@ func TestFormatBranchStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatBranchStatus(tt.bs)
+			got := formatBranchStatus(tt.bs, styleNone)
 			if got != tt.want {
 				t.Errorf("formatBranchStatus(%v) = %q, want %q", tt.bs, got, tt.want)
 			}
@@ -105,8 +108,8 @@ func TestFormatBranchStatus(t *testing.T) {
 
 func TestFormatTitleSelected(t *testing.T) {
 	pr := analysis.PullRequest{Number: 5, Title: "add feature", IsDraft: true}
-	got := formatTitle(pr, true)
-	want := styleGray.Render("[draft] ") + styleSelected.Render("#5 add feature")
+	got := formatTitle(pr, true, styleSelectedRow)
+	want := styleSelectedRow.Inherit(styleGray).Render("[draft] ") + styleSelectedRow.Inherit(styleSelected).Render("#5 add feature")
 	if got != want {
 		t.Errorf("formatTitle(selected) = %q, want %q", got, want)
 	}
@@ -146,7 +149,7 @@ func TestFit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := fit(tt.s, tt.w)
+			got := fit(tt.s, tt.w, styleNone)
 			if got != tt.want {
 				t.Errorf("fit(%q, %d) = %q, want %q", tt.s, tt.w, got, tt.want)
 			}
@@ -246,5 +249,50 @@ func TestConfirmViewApproval(t *testing.T) {
 		if !strings.Contains(got, tt.want) {
 			t.Errorf("confirmView(approval %d) = %q, want to contain %q", tt.state, got, tt.want)
 		}
+	}
+}
+
+func TestPRLineViewSelectedBackgroundFillsWidth(t *testing.T) {
+	oldProfile := lipgloss.ColorProfile()
+	oldDark := lipgloss.HasDarkBackground()
+	lipgloss.SetColorProfile(termenv.ANSI256)
+	lipgloss.SetHasDarkBackground(true)
+	t.Cleanup(func() {
+		lipgloss.SetColorProfile(oldProfile)
+		lipgloss.SetHasDarkBackground(oldDark)
+	})
+
+	pr := analysis.PullRequest{
+		Number:   4501,
+		Title:    strings.Repeat("long title ", 20),
+		IsDraft:  true,
+		Checks:   analysis.CheckSummary{Pass: 12, Fail: 1, Overall: analysis.StatusFailing},
+		Approval: analysis.ApprovalApproved,
+		Branch:   analysis.BranchBehind,
+		Comments: 7,
+		Age:      "2w",
+	}
+	const width = 120
+
+	tests := []struct {
+		name     string
+		selected bool
+		wantBg   bool
+	}{
+		{"selected line has background in each cell", true, true},
+		{"other lines have no background", false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buf := cellbuf.NewBuffer(width, 1)
+			cellbuf.SetContent(buf, prLineView(pr, tt.selected, titleWidth(width)))
+			for x := range width {
+				c := buf.Cell(x, 0)
+				if hasBg := c != nil && c.Style.Bg != nil; hasBg != tt.wantBg {
+					t.Fatalf("cell %d background = %v, want %v", x, hasBg, tt.wantBg)
+				}
+			}
+		})
 	}
 }
