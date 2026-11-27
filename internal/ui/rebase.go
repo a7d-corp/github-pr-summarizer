@@ -29,6 +29,6 @@ func rebaseConfirmView(pr analysis.PullRequest) string {
 	return fmt.Sprintf(
 		"%s#%d  %s\n\napproval: %s   up to date: %s\n\nrebase onto the base branch? y/n",
 		pr.Repo, pr.Number, pr.Title,
-		formatApprovalText(pr.Approval), formatBranchStatus(pr.Branch),
+		formatApprovalText(pr.Approval), formatBranchStatus(pr.Branch, styleNone),
 	)
 }
