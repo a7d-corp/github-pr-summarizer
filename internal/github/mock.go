@@ -12,6 +12,7 @@ type MockFetcher struct {
 	MergeErr error
 	Merged   []string
 	Approved []bool
+	Rebased  []string
 }
 
 var _ Fetcher = (*MockFetcher)(nil)
@@ -26,5 +27,11 @@ func (m *MockFetcher) SearchOpenPRs(ctx context.Context) ([]PullRequest, error) 
 func (m *MockFetcher) ApproveAndMerge(ctx context.Context, repo string, number int, approve bool) error {
 	m.Merged = append(m.Merged, fmt.Sprintf("%s#%d", repo, number))
 	m.Approved = append(m.Approved, approve)
+	return m.MergeErr
+}
+
+// RebaseBranch records the PR node ID as rebased and returns the configured error.
+func (m *MockFetcher) RebaseBranch(ctx context.Context, prID string) error {
+	m.Rebased = append(m.Rebased, prID)
 	return m.MergeErr
 }

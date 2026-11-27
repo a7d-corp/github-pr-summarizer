@@ -12,6 +12,7 @@ type keyMap struct {
 	Enter    key.Binding
 	OpenRepo key.Binding
 	Merge    key.Binding
+	Rebase   key.Binding
 	Yes      key.Binding
 	No       key.Binding
 	Refresh  key.Binding
@@ -38,6 +39,10 @@ var keys = keyMap{
 		key.WithKeys("m"),
 		key.WithHelp("m", "approve and merge PR"),
 	),
+	Rebase: key.NewBinding(
+		key.WithKeys("u"),
+		key.WithHelp("u", "rebase PR onto its base branch"),
+	),
 	Yes: key.NewBinding(key.WithKeys("y")),
 	No:  key.NewBinding(key.WithKeys("n", "esc")),
 	Refresh: key.NewBinding(
@@ -61,6 +66,7 @@ const helpText = `
   enter          open PR in browser
   o              open PR's repo in browser
   m              approve and squash-merge PR (asks to confirm)
+  u              rebase PR onto its base branch (asks to confirm)
   r              refresh
   ?              toggle this help
   q, ctrl+c      quit

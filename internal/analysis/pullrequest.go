@@ -8,6 +8,7 @@ import (
 
 // PullRequest is the domain model consumed by the UI layer.
 type PullRequest struct {
+	ID        string // GraphQL node ID
 	Number    int
 	Title     string
 	URL       string
@@ -41,6 +42,7 @@ func BuildPullRequests(raws []github.PullRequest, allowlist map[string]struct{},
 	prs := make([]PullRequest, 0, len(filtered))
 	for _, raw := range filtered {
 		prs = append(prs, PullRequest{
+			ID:        raw.ID,
 			Number:    raw.Number,
 			Title:     raw.Title,
 			URL:       raw.URL,

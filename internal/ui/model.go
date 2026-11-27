@@ -25,7 +25,9 @@ type Model struct {
 	allowlist  map[string]struct{}
 	loading    bool
 	confirming bool
+	rebase     bool // true if the confirm screen is for a rebase, not a merge
 	merging    bool
+	rebasing   bool
 	status     string
 	err        error
 	showHelp   bool
@@ -76,6 +78,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, fetchCmd(m.fetcher, m.allowlist)
 
+	case rebasedMsg:
+		m.rebasing = false
+		m.loading = true
+		if msg.err != nil {
+			m.status = fmt.Sprintf("%s#%d: %v", msg.repo, msg.number, msg.err)
+		} else {
+			m.status = fmt.Sprintf("rebased %s#%d", msg.repo, msg.number)
+		}
+		return m, fetchCmd(m.fetcher, m.allowlist)
+
 	case tea.KeyMsg:
 		if m.confirming {
 			return m.updateConfirm(msg)
@@ -93,6 +105,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keys.Merge):
 			if _, ok := m.selectedPR(); ok {
 				m.confirming = true
+				m.rebase = false
+				m.status = ""
+			}
+			return m, nil
+		case key.Matches(msg, keys.Rebase):
+			if _, ok := m.selectedPR(); ok {
+				m.confirming = true
+				m.rebase = true
 				m.status = ""
 			}
 			return m, nil
@@ -131,8 +151,14 @@ func (m Model) View() string {
 	if m.merging {
 		return "merging...\n"
 	}
+	if m.rebasing {
+		return "rebasing...\n"
+	}
 	if m.confirming {
 		if pr, ok := m.selectedPR(); ok {
+			if m.rebase {
+				return rebaseConfirmView(pr)
+			}
 			return confirmView(pr)
 		}
 	}
@@ -152,7 +178,7 @@ func (m Model) View() string {
 	return view
 }
 
-// updateConfirm handles keys while the merge confirmation is shown.
+// updateConfirm handles keys while the merge or rebase confirmation is shown.
 func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, keys.Quit):
@@ -162,6 +188,10 @@ func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.confirming = false
 		if !ok {
 			return m, nil
+		}
+		if m.rebase {
+			m.rebasing = true
+			return m, rebaseCmd(m.merger, pr)
 		}
 		m.merging = true
 		return m, mergeCmd(m.merger, pr)
@@ -259,5 +289,5 @@ func (m Model) listView() string {
 }
 
 func statusLine(prs []analysis.PullRequest) string {
-	return fmt.Sprintf("%d PRs · enter open · m merge · r refresh · ? help · q quit", len(prs))
+	return fmt.Sprintf("%d PRs · enter open · m merge · u rebase · r refresh · ? help · q quit", len(prs))
 }

@@ -5,6 +5,7 @@ query($query: String!, $cursor: String) {
   search(query: $query, type: ISSUE, first: 15, after: $cursor) {
     nodes {
       ... on PullRequest {
+        id
         number
         title
         url
