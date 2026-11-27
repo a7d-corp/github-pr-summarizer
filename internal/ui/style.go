@@ -23,4 +23,11 @@ var (
 
 	styleHelp  = lipgloss.NewStyle().Padding(1, 2).Border(lipgloss.RoundedBorder())
 	styleError = lipgloss.NewStyle().Foreground(colorRed).Bold(true)
+	// styleErrorBox puts a red border around a merge or rebase error.
+	styleErrorBox = lipgloss.NewStyle().
+			Foreground(colorRed).
+			Bold(true).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(colorRed).
+			Padding(0, 1)
 )

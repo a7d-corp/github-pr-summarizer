@@ -326,6 +326,11 @@ func TestModelUpdateMergedSuccessReturnsToListAndRefreshes(t *testing.T) {
 	if !strings.Contains(updated.status, "merged giantswarm/happa#7") {
 		t.Errorf("status = %q, want merged message", updated.status)
 	}
+
+	fetched, _ := updated.Update(fetchedMsg{prs: updated.prs})
+	if got := fetched.(Model).View(); strings.Contains(got, "╭") {
+		t.Errorf("View() = %q, want no error box after a merge success", got)
+	}
 }
 
 func TestModelUpdateMergedFailureShowsErrorOnList(t *testing.T) {
@@ -346,6 +351,12 @@ func TestModelUpdateMergedFailureShowsErrorOnList(t *testing.T) {
 	got := fetched.(Model).View()
 	if !strings.Contains(got, "blocked by branch protection") {
 		t.Errorf("View() = %q, want to contain the merge error", got)
+	}
+	if !strings.Contains(got, "merge failed") {
+		t.Errorf("View() = %q, want to contain %q", got, "merge failed")
+	}
+	if !strings.Contains(got, "╭") || !strings.Contains(got, "╰") {
+		t.Errorf("View() = %q, want the merge error in a box", got)
 	}
 	if !strings.Contains(got, "1 PRs") {
 		t.Errorf("View() = %q, want the PR list", got)

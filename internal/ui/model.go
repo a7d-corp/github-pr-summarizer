@@ -29,6 +29,7 @@ type Model struct {
 	merging    bool
 	rebasing   bool
 	status     string
+	statusErr  bool // true if status is a merge or rebase error
 	err        error
 	showHelp   bool
 	openURL    func(string) error
@@ -71,8 +72,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case mergedMsg:
 		m.merging = false
 		m.loading = true
+		m.statusErr = msg.err != nil
 		if msg.err != nil {
-			m.status = fmt.Sprintf("%s#%d: %v", msg.repo, msg.number, msg.err)
+			m.status = fmt.Sprintf("merge failed: %s#%d: %v", msg.repo, msg.number, msg.err)
 		} else {
 			m.status = fmt.Sprintf("merged %s#%d", msg.repo, msg.number)
 		}
@@ -81,8 +83,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case rebasedMsg:
 		m.rebasing = false
 		m.loading = true
+		m.statusErr = msg.err != nil
 		if msg.err != nil {
-			m.status = fmt.Sprintf("%s#%d: %v", msg.repo, msg.number, msg.err)
+			m.status = fmt.Sprintf("rebase failed: %s#%d: %v", msg.repo, msg.number, msg.err)
 		} else {
 			m.status = fmt.Sprintf("rebased %s#%d", msg.repo, msg.number)
 		}
@@ -173,9 +176,23 @@ func (m Model) View() string {
 	}
 	view := m.listView() + "\n" + statusLine(m.prs)
 	if m.status != "" {
-		view += "\n" + m.status
+		view += "\n" + m.statusView()
 	}
 	return view
+}
+
+// statusView renders the status message. An error is shown in a red box
+// that fills the terminal width.
+func (m Model) statusView() string {
+	if !m.statusErr {
+		return m.status
+	}
+	style := styleErrorBox
+	if m.width > 2 {
+		// The width excludes the two border columns.
+		style = style.Width(m.width - 2)
+	}
+	return style.Render(m.status)
 }
 
 // updateConfirm handles keys while the merge or rebase confirmation is shown.
