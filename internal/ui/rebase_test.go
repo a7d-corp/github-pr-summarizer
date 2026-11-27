@@ -96,6 +96,11 @@ func TestModelUpdateRebasedSuccessReturnsToListAndRefreshes(t *testing.T) {
 	if !strings.Contains(updated.status, "rebased giantswarm/happa#7") {
 		t.Errorf("status = %q, want rebased message", updated.status)
 	}
+
+	fetched, _ := updated.Update(fetchedMsg{prs: updated.prs})
+	if got := fetched.(Model).View(); strings.Contains(got, "╭") {
+		t.Errorf("View() = %q, want no error box after a rebase success", got)
+	}
 }
 
 func TestModelUpdateRebasedFailureShowsErrorOnList(t *testing.T) {
@@ -113,7 +118,14 @@ func TestModelUpdateRebasedFailureShowsErrorOnList(t *testing.T) {
 	}
 
 	fetched, _ := updated.Update(fetchedMsg{prs: updated.prs})
-	if got := fetched.(Model).View(); !strings.Contains(got, "merge conflict") {
+	got := fetched.(Model).View()
+	if !strings.Contains(got, "merge conflict") {
 		t.Errorf("View() = %q, want to contain the rebase error", got)
+	}
+	if !strings.Contains(got, "rebase failed") {
+		t.Errorf("View() = %q, want to contain %q", got, "rebase failed")
+	}
+	if !strings.Contains(got, "╭") || !strings.Contains(got, "╰") {
+		t.Errorf("View() = %q, want the rebase error in a box", got)
 	}
 }
